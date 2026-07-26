@@ -488,8 +488,8 @@ public final class ClickGuiScreen extends Screen {
         drawText(colX + 5f, colY, 7f * 1.3f, mukta, title, FONT_SECTION, SECTION);
         colY += 8f * 1.3f;
         float ph = groupPanelHeight(modules.size());
-        // Wider panel when not combat two-col
-        float panelW = CONTENT_W - CONTENT_INSET * 2f;
+        // Column-width panel so single-module categories don't stretch full width
+        float panelW = COL_W;
         renderModuleListPanel(colX, colY, panelW, ph, modules, mukta);
     }
 
@@ -499,8 +499,13 @@ public final class ClickGuiScreen extends Screen {
         Draw.drawRound(x, y, w, h, PANEL_RADIUS, new Color(0, 0, 0, 0), BORDER, 1f);
 
         float rowY = y + PANEL_PAD * 0.45f;
+        boolean firstRow = true;
         for (Module module : modules) {
-            drawText(x + PANEL_PAD, rowY, ROW_H, mukta, module.getName(), FONT_BODY, TEXT);
+            if (!firstRow) {
+                Draw.drawRound(x + PANEL_PAD, rowY - 0.5f, w - PANEL_PAD * 2f, 1f, 0.5f, STRIPE);
+            }
+            firstRow = false;
+            drawText(x + PANEL_PAD, rowY, ROW_H, mukta, module.getDisplayName(), FONT_BODY, TEXT);
 
             float toggleX = x + w - PANEL_PAD - TOGGLE_W;
             float toggleY = rowY + (ROW_H - TOGGLE_H) * 0.5f;
@@ -545,7 +550,7 @@ public final class ClickGuiScreen extends Screen {
     private float[] singlePanelOrigin(List<Module> modules) {
         float colX = CONTENT_INSET;
         float colY = CONTENT_TOP + 3f + 8f * 1.3f;
-        float panelW = CONTENT_W - CONTENT_INSET * 2f;
+        float panelW = COL_W;
         float ph = groupPanelHeight(modules.size());
         return new float[]{colX, colY, panelW, ph};
     }
@@ -640,7 +645,8 @@ public final class ClickGuiScreen extends Screen {
             float sliderW = 31f * 1.3f;
             float visual = visualSlider(slider, key);
             String label = formatSlider(slider, visual);
-            float boxW = Math.max(9.5f * 1.3f, Fonts.REGULAR().getWidth(label, FONT_SMALL) + 5f * 1.3f);
+            // Fixed-width value box so it doesn't grow/shift while dragging
+            float boxW = 22f * 1.3f;
             float boxX = x + w - PANEL_PAD - boxW;
             float boxY = rowY + (ROW_H - 8.5f * 1.3f) * 0.5f;
             float sliderX = boxX - sliderW - 6f * 1.3f;
@@ -650,7 +656,8 @@ public final class ClickGuiScreen extends Screen {
             drawSlider(sliderX, rowY + ROW_H * 0.5f - 1f * 1.3f, sliderW, visual, vel);
             Draw.drawRound(boxX, boxY, boxW, 8.5f * 1.3f, 2.5f * 1.3f, CHIP_BG);
             Draw.drawRound(boxX, boxY, boxW, 8.5f * 1.3f, 2.5f * 1.3f, new Color(0, 0, 0, 0), BORDER, 1f);
-            drawText(boxX + 2f, boxY, 8.5f * 1.3f, Fonts.REGULAR(), label, FONT_SMALL, TEXT);
+            float labelW = Fonts.REGULAR().getWidth(label, FONT_SMALL);
+            drawText(boxX + (boxW - labelW) * 0.5f, boxY, 8.5f * 1.3f, Fonts.REGULAR(), label, FONT_SMALL, TEXT);
         } else if (setting instanceof ModeSetting mode) {
             float modeFlash = Animations.get("mode." + key);
             float modeW = 53.5f * 1.3f;

@@ -5,3 +5,5 @@
 /time set 1000
 /weather clear
 /time set 1000
+/weather clear
+/time set 1000

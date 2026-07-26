@@ -42,7 +42,7 @@ public final class ClickGuiTheme {
     /** Frost blur tint — more transparent than the solid shell. */
     public static final Color WINDOW_BLUR = new Color(8, 12, 16, 110);
     /** Solid shell (was first rect alpha). */
-    public static final Color WINDOW_BG = new Color(8, 12, 16, 230);
+    public static final Color WINDOW_BG = new Color(8, 12, 16, 25);
     /** Content column. */
     public static final Color CONTENT_BG = new Color(4, 6, 10, 230);
     /** rgba(21, 20, 29, 0.3) */

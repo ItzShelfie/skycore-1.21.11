@@ -13,14 +13,17 @@ import shelf.paster.client.module.impl.NoPushModule;
 import shelf.paster.client.module.impl.OtherAimModule;
 import shelf.paster.client.module.impl.SelectionModule;
 import shelf.paster.client.module.impl.SprintModule;
+import shelf.paster.client.module.impl.TestModule;
 import shelf.paster.client.ui.clickgui.ClickGuiScreen;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public final class ModuleManager {
     private final List<Module> modules = new ArrayList<>();
@@ -38,6 +41,18 @@ public final class ModuleManager {
                 NoPushModule.INSTANCE,
                 MiddleClickFriendModule.INSTANCE
         );
+
+        // Add 3 "Test" placeholder modules to every category+group that has modules.
+        List<Module> snapshot = new ArrayList<>(modules);
+        Set<String> seen = new LinkedHashSet<>();
+        for (Module module : snapshot) {
+            String key = module.getCategory().name() + "-" + module.getGroup().name();
+            if (seen.add(key)) {
+                for (int i = 1; i <= 3; i++) {
+                    register(new TestModule("Test-" + key + "-" + i, module.getCategory(), module.getGroup()));
+                }
+            }
+        }
     }
 
     public void register(Module... toRegister) {

@@ -31,6 +31,11 @@ public abstract class Module {
         return name;
     }
 
+    /** Label shown in the ClickGUI; defaults to the unique name. */
+    public String getDisplayName() {
+        return name;
+    }
+
     public String getDescription() {
         return description;
     }
