@@ -1,0 +1,48 @@
+{
+  "stats": {
+    "minecraft:killed": {
+      "minecraft:horse": 5,
+      "minecraft:chicken": 2,
+      "minecraft:pig": 6,
+      "minecraft:iron_golem": 1,
+      "minecraft:sheep": 7,
+      "minecraft:cow": 8,
+      "minecraft:villager": 2
+    },
+    "minecraft:custom": {
+      "minecraft:time_since_rest": 9405,
+      "minecraft:walk_one_cm": 1642,
+      "minecraft:mob_kills": 31,
+      "minecraft:damage_dealt": 4610,
+      "minecraft:play_time": 9405,
+      "minecraft:jump": 199,
+      "minecraft:time_since_death": 9405,
+      "minecraft:drop": 6,
+      "minecraft:sprint_one_cm": 10538,
+      "minecraft:total_world_time": 26761,
+      "minecraft:fly_one_cm": 496516,
+      "minecraft:crouch_one_cm": 685,
+      "minecraft:sneak_time": 1025
+    },
+    "minecraft:dropped": {
+      "minecraft:iron_ingot": 15,
+      "minecraft:feather": 2,
+      "minecraft:mutton": 11,
+      "minecraft:white_wool": 6
+    },
+    "minecraft:used": {
+      "minecraft:netherite_sword": 50
+    },
+    "minecraft:picked_up": {
+      "minecraft:porkchop": 14,
+      "minecraft:white_wool": 6,
+      "minecraft:feather": 2,
+      "minecraft:chicken": 2,
+      "minecraft:mutton": 11,
+      "minecraft:leather": 15,
+      "minecraft:iron_ingot": 15,
+      "minecraft:beef": 19
+    }
+  },
+  "DataVersion": 4671
+}

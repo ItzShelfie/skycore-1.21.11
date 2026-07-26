@@ -1,0 +1,212 @@
+plugins {
+    id 'fabric-loom' version '1.17-SNAPSHOT'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+fabricApi {
+    configureDataGeneration()
+}
+
+repositories {
+    // Add repositories to retrieve artifacts from in here.
+    // You should only use this when depending on other mods because
+    // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+    // See https://docs.gradle.org/current/userguide/declaring_repositories.html
+    // for more information about repositories.
+}
+
+dependencies {
+    // To change the versions see the gradle.properties file
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    implementation "com.google.code.gson:gson:2.11.0"
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    inputs.property "loader_version", project.loader_version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version,
+                "minecraft_version": project.minecraft_version,
+                "loader_version": project.loader_version
+    }
+}
+
+def targetJavaVersion = 21
+tasks.withType(JavaCompile).configureEach {
+    // ensure that the encoding is set to UTF-8, no matter what the system default is
+    // this fixes some edge cases with special characters not displaying correctly
+    // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
+    // If Javadoc is generated, this must be specified in that task too.
+    it.options.encoding = "UTF-8"
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        it.options.release.set(targetJavaVersion)
+    }
+}
+
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+    // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+    // if it is present.
+    // If you remove this line, sources will not be generated.
+    withSourcesJar()
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archives_base_name}" }
+    }
+}
+
+// --- MSDF atlas generator (msdf-atlas-gen) ---
+// Usage:
+//   ./gradlew msdf -Pfont=skycore
+//   ./gradlew msdf -Pfont=path/to/Custom.ttf -Pout=myfont
+def msdfVersion = '1.4'
+def msdfToolsDir = layout.buildDirectory.dir("msdf-atlas-gen/${msdfVersion}")
+def fontsDir = file('src/main/resources/assets/pasta/fonts')
+
+tasks.register('downloadMsdfAtlasGen') {
+    group = 'msdf'
+    description = 'Downloads Chlumsky msdf-atlas-gen win64 binary'
+    outputs.dir(msdfToolsDir)
+    doLast {
+        def dest = msdfToolsDir.get().asFile
+        dest.mkdirs()
+        def exe = new File(dest, 'msdf-atlas-gen.exe')
+        if (exe.exists()) {
+            return
+        }
+        def zipUrl = "https://github.com/Chlumsky/msdf-atlas-gen/releases/download/v${msdfVersion}/msdf-atlas-gen-${msdfVersion}-win64.zip"
+        def zipFile = new File(dest, "msdf-atlas-gen-${msdfVersion}-win64.zip")
+        logger.lifecycle("Downloading ${zipUrl}")
+        zipFile.withOutputStream { out ->
+            new URI(zipUrl).toURL().openStream().withCloseable { input ->
+                out << input
+            }
+        }
+        copy {
+            from zipTree(zipFile)
+            into dest
+            include '**/msdf-atlas-gen.exe'
+            eachFile { fcd ->
+                fcd.path = fcd.name
+            }
+            includeEmptyDirs = false
+        }
+        zipFile.delete()
+        if (!exe.exists()) {
+            throw new GradleException("msdf-atlas-gen.exe not found after extract in ${dest}")
+        }
+    }
+}
+
+tasks.register('msdf') {
+    group = 'msdf'
+    description = 'Generate MSDF .json + .png atlas matching pasta font format (size=64, pxrange=10, yorigin=bottom)'
+    dependsOn 'downloadMsdfAtlasGen'
+
+    doLast {
+        def fontProp = (project.findProperty('font') ?: 'skycore').toString()
+        def outProp = project.findProperty('out')
+        def size = (project.findProperty('msdfSize') ?: '64').toString()
+        def pxrange = (project.findProperty('msdfPxRange') ?: '10').toString()
+
+        def fontFile = file(fontProp)
+        if (!fontFile.exists()) {
+            def name = fontProp.endsWithIgnoreCase('.ttf') || fontProp.endsWithIgnoreCase('.otf') ? fontProp : "${fontProp}.ttf"
+            fontFile = new File(fontsDir, name)
+        }
+        if (!fontFile.exists()) {
+            throw new GradleException("Font not found: ${fontProp} (looked in ${fontsDir})")
+        }
+
+        def outName = (outProp ?: fontFile.name.replaceAll(/(?i)\.(ttf|otf)$/, '')).toString()
+        def imageOut = new File(fontsDir, "${outName}.png")
+        def jsonOut = new File(fontsDir, "${outName}.json")
+        def exe = new File(msdfToolsDir.get().asFile, 'msdf-atlas-gen.exe')
+
+        logger.lifecycle("MSDF: ${fontFile.name} -> ${outName}.json / ${outName}.png (size=${size}, pxrange=${pxrange})")
+
+        def cmd = [
+                exe.absolutePath,
+                '-font', fontFile.absolutePath,
+                '-type', 'msdf',
+                '-format', 'png',
+                '-imageout', imageOut.absolutePath,
+                '-json', jsonOut.absolutePath,
+                '-size', size,
+                '-pxrange', pxrange,
+                '-yorigin', 'bottom'
+        ]
+        // Charset uses msdf-atlas-gen syntax so JSON has unicode fields (needed for Text).
+        // Examples: -Pchars='"abcdefghijklm"'   or   -Pallglyphs
+        def chars = project.findProperty('chars')
+        if (project.hasProperty('allglyphs')) {
+            cmd.add('-allglyphs')
+        } else if (chars != null) {
+            def charsetFile = new File(msdfToolsDir.get().asFile, "charset-${outName}.txt")
+            charsetFile.parentFile.mkdirs()
+            // Accept raw letters (abc) or a full spec ("abc" / ['a','z']).
+            def spec = chars.toString().trim()
+            if (!(spec.startsWith('"') || spec.startsWith('\'') || spec.startsWith('[') || spec.startsWith('@'))) {
+                spec = "\"${spec}\""
+            }
+            charsetFile.setText(spec, 'UTF-8')
+            cmd.addAll(['-charset', charsetFile.absolutePath])
+        } else {
+            def charsetFile = new File(msdfToolsDir.get().asFile, "charset-${outName}.txt")
+            charsetFile.parentFile.mkdirs()
+            charsetFile.setText('" abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"', 'UTF-8')
+            cmd.addAll(['-charset', charsetFile.absolutePath])
+        }
+
+        def result = providers.exec {
+            workingDir(fontsDir)
+            commandLine(cmd)
+        }.result.get()
+
+        if (result.exitValue != 0) {
+            throw new GradleException("msdf-atlas-gen failed with exit ${result.exitValue}")
+        }
+        if (!jsonOut.exists() || !imageOut.exists()) {
+            throw new GradleException("Expected outputs missing: ${jsonOut} / ${imageOut}")
+        }
+        logger.lifecycle("Done: ${jsonOut.name}, ${imageOut.name}")
+    }
+}
+
+// configure the maven publication
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = project.archives_base_name
+            from components.java
+        }
+    }
+
+    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+    repositories {
+        // Add repositories to publish to here.
+        // Notice: This block does NOT have the same function as the block in the top level.
+        // The repositories here will be used for publishing your artifact, not for
+        // retrieving dependencies.
+    }
+}

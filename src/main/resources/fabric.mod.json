@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "pasta",
+  "version": "${version}",
+  "name": "1.21.11",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/pasta/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-datagen": [
+      "shelf.paster.client.SkycoreDataGenerator"
+    ],
+    "client": [
+      "shelf.paster.client.SkycoreClient"
+    ],
+    "main": [
+      "shelf.paster.Skycore"
+    ]
+  },
+  "mixins": [
+    "pasta.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
